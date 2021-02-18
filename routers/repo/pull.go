@@ -64,11 +64,14 @@ func getRepository(ctx *context.Context, repoID int64) *models.Repository {
 		return nil
 	}
 
+    log.Trace("routers/repo/pull.go: getRepository: 1")
 	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
+        log.Trace("routers/repo/pull.go: getRepository: 2a")
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
 	}
+    log.Trace("routers/repo/pull.go: getRepository: 2b")
 
 	if !perm.CanRead(models.UnitTypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
@@ -1049,11 +1052,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
+    log.Trace("routers/repo/pull.go: CleanUpPullRequest: 1")
 	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.User)
 	if err != nil {
+        log.Trace("routers/repo/pull.go: CleanUpPullRequest: 2a")
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
+    log.Trace("routers/repo/pull.go: CleanUpPullRequest: 2b")
 	if !perm.CanWrite(models.UnitTypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return

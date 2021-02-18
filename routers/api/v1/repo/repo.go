@@ -428,14 +428,18 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
+    log.Trace("GetById: 1")
 	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
+        log.Trace("GetById: 2a")
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if !perm.HasAccess() {
+        log.Trace("GetById: 2b")
 		ctx.NotFound()
 		return
 	}
+    log.Trace("GetById: 2c")
 	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
 }
 

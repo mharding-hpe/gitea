@@ -244,11 +244,14 @@ func HTTP(ctx *context.Context) {
 		}
 
 		if repoExist {
+            log.Trace("routers/repo/http.go: HTTP: 1")
 			perm, err := models.GetUserRepoPermission(repo, authUser)
 			if err != nil {
+                log.Trace("routers/repo/http.go: HTTP: 2a")
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
+            log.Trace("routers/repo/http.go: HTTP: 2b")
 
 			if !perm.CanAccess(accessMode, unitType) {
 				ctx.HandleText(http.StatusForbidden, "User permission denied")

@@ -272,11 +272,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// Now we need to assert that the ctx.User has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
+    log.Trace("routers/repo/compare.go: ParseCompareInfo: 1")
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
+        log.Trace("routers/repo/compare.go: ParseCompareInfo: 2a")
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
+    log.Trace("routers/repo/compare.go: ParseCompareInfo: 2b")
 	if !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
@@ -291,11 +294,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// If we're not merging from the same repo:
 	if !isSameRepo {
 		// Assert ctx.User has permission to read headRepo's codes
+        log.Trace("routers/repo/compare.go: ParseCompareInfo: 3")
 		permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 		if err != nil {
+            log.Trace("routers/repo/compare.go: ParseCompareInfo: 4a")
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil, nil, nil, nil, "", ""
 		}
+        log.Trace("routers/repo/compare.go: ParseCompareInfo: 4b")
 		if !permHead.CanRead(models.UnitTypeCode) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
@@ -507,10 +513,13 @@ func PrepareCompareDiff(
 }
 
 func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []string, error) {
+    log.Trace("routers/repo/compare.go: getBranchesForRepo: 1")
 	perm, err := models.GetUserRepoPermission(repo, user)
 	if err != nil {
+        log.Trace("routers/repo/compare.go: getBranchesForRepo: 2a")
 		return false, nil, err
 	}
+    log.Trace("routers/repo/compare.go: getBranchesForRepo: 2b")
 	if !perm.CanRead(models.UnitTypeCode) {
 		return false, nil, nil
 	}

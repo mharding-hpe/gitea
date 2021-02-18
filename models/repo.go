@@ -422,10 +422,13 @@ func (repo *Repository) checkUnitUser(e Engine, userID int64, isAdmin bool, unit
 	if err != nil {
 		return false
 	}
+    log.Trace("checkUnitUser 1")
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
+        log.Trace("checkUnitUser 2a")
 		return false
 	}
+    log.Trace("checkUnitUser 2b")
 
 	return perm.CanRead(unitType)
 }

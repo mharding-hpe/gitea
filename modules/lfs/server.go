@@ -572,12 +572,15 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		accessMode = models.AccessModeWrite
 	}
 
+    log.Trace("authenticate 1")
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := models.GetUserRepoPermission(repository, ctx.User)
 	if err != nil {
+        log.Trace("authenticate 2a")
 		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
 		return false
 	}
+    log.Trace("authenticate 2b")
 
 	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
 	if canRead {
@@ -592,11 +595,14 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 	ctx.User = user
 	if opStr == "basic" {
+        log.Trace("authenticate 3")
 		perm, err = models.GetUserRepoPermission(repository, ctx.User)
 		if err != nil {
+            log.Trace("authenticate 4a")
 			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
 			return false
 		}
+        log.Trace("authenticate 4b")
 		return perm.CanAccess(accessMode, models.UnitTypeCode)
 	}
 	if repository.ID == repo.ID {

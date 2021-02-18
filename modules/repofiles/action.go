@@ -91,10 +91,13 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				continue
 			}
 
+            log.Trace(fmt.Sprintf("UpdateIssuesCommit  1 ref=%v", ref))
 			perm, err := models.GetUserRepoPermission(refRepo, doer)
 			if err != nil {
+                log.Trace(fmt.Sprintf("UpdateIssuesCommit  2a ref=%v", ref))
 				return err
 			}
+            log.Trace(fmt.Sprintf("UpdateIssuesCommit  2b ref=%v", ref))
 
 			key := markKey{ID: refIssue.ID, Action: ref.Action}
 			if refMarked[key] {

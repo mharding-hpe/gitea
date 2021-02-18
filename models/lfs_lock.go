@@ -157,10 +157,13 @@ func CheckLFSAccessForRepo(u *User, repo *Repository, mode AccessMode) error {
 	if u == nil {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
+    log.Trace("CheckLFSAccessForRepo 1")
 	perm, err := GetUserRepoPermission(repo, u)
 	if err != nil {
+        log.Trace("CheckLFSAccessForRepo 2a")
 		return err
 	}
+    log.Trace("CheckLFSAccessForRepo 2b")
 	if !perm.CanAccess(mode, UnitTypeCode) {
 		return ErrLFSUnauthorizedAction{repo.ID, u.DisplayName(), mode}
 	}

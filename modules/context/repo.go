@@ -247,11 +247,14 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 		return
 	}
 
+    log.Trace("RetrieveTemplateRepo 1")
 	perm, err := models.GetUserRepoPermission(repo.TemplateRepo, ctx.User)
 	if err != nil {
+        log.Trace("RetrieveTemplateRepo 2a")
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
+    log.Trace("RetrieveTemplateRepo 2b")
 
 	if !perm.CanRead(models.UnitTypeCode) {
 		repo.TemplateID = 0
@@ -315,11 +318,14 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		return
 	}
 
+    log.Trace("repoAssignment 1")
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
+        log.Trace("repoAssignment 2a")
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
+    log.Trace("repoAssignment 2b")
 
 	// Check access.
 	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {

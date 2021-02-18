@@ -833,12 +833,15 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
+    log.Trace("parseCompareInfo: 1")
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
+        log.Trace("parseCompareInfo: 2a")
 		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
+    log.Trace("parseCompareInfo: 2b")
 	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v",
@@ -852,12 +855,15 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// user should have permission to read headrepo's codes
+    log.Trace("parseCompareInfo: 3")
 	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 	if err != nil {
+        log.Trace("parseCompareInfo: 4a")
 		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
+    log.Trace("parseCompareInfo: 4b")
 	if !permHead.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",

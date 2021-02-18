@@ -409,10 +409,13 @@ func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
+        log.Trace(fmt.Sprintf("updateUserWhitelist: userID=%v 1", userID))
 		perm, err := GetUserRepoPermission(repo, user)
 		if err != nil {
+            log.Trace(fmt.Sprintf("updateUserWhitelist: userID=%v 2a", userID))
 			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
+        log.Trace(fmt.Sprintf("updateUserWhitelist: userID=%v 2b", userID))
 
 		if !perm.CanWrite(UnitTypeCode) {
 			continue // Drop invalid user ID

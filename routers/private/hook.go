@@ -316,14 +316,17 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					})
 					return
 				}
+                log.Trace(fmt.Sprintf("HookPreReceive 1 i=%v", i))
 				perm, err := models.GetUserRepoPermission(repo, user)
 				if err != nil {
+                    log.Trace(fmt.Sprintf("HookPreReceive 2a i=%v", i))
 					log.Error("Unable to get Repo permission of repo %s/%s of User %s", repo.OwnerName, repo.Name, user.Name, err)
 					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 						"err": fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", repo.OwnerName, repo.Name, user.Name, err),
 					})
 					return
 				}
+                log.Trace(fmt.Sprintf("HookPreReceive 2b i=%v", i))
 				allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, user)
 				if err != nil {
 					log.Error("Error calculating if allowed to merge: %v", err)

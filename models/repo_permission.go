@@ -318,10 +318,13 @@ func AccessLevelUnit(user *User, repo *Repository, unitType UnitType) (AccessMod
 }
 
 func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+    log.Trace("accessLevelUnit 1")
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
+        log.Trace("accessLevelUnit 2a")
 		return AccessModeNone, err
 	}
+    log.Trace("accessLevelUnit 2b")
 	return perm.UnitAccessMode(unitType), nil
 }
 
@@ -346,10 +349,13 @@ func canBeAssigned(e Engine, user *User, repo *Repository, _ bool) (bool, error)
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
+    log.Trace("canBeAssigned 1")
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
+        log.Trace("canBeAssigned 2a")
 		return false, err
 	}
+    log.Trace("canBeAssigned 2b")
 	return perm.CanAccessAny(AccessModeWrite, UnitTypeCode, UnitTypeIssues, UnitTypePullRequests), nil
 }
 
@@ -362,10 +368,13 @@ func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
 			return false, err
 		}
 	}
+    log.Trace("hasAccess 1")
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
+        log.Trace("hasAccess 2a")
 		return false, err
 	}
+    log.Trace("hasAccess 2b")
 	return perm.HasAccess(), nil
 }
 

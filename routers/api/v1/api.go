@@ -157,11 +157,14 @@ func repoAssignment() macaron.Handler {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
+        log.Trace("repoAssignment: 1")
 		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 		if err != nil {
+            log.Trace("repoAssignment: 2a")
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
+        log.Trace("repoAssignment: 2b")
 
 		if !ctx.Repo.HasAccess() {
 			ctx.NotFound()

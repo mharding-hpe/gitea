@@ -263,8 +263,10 @@ func ServCommand(ctx *macaron.Context) {
 				return
 			}
 		} else {
+            log.Trace("ServCommand: 1")
 			perm, err := models.GetUserRepoPermission(repo, user)
 			if err != nil {
+                log.Trace("ServCommand: 2a")
 				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 					"results": results,
@@ -273,6 +275,7 @@ func ServCommand(ctx *macaron.Context) {
 				})
 				return
 			}
+            log.Trace("ServCommand: 2b")
 
 			userMode := perm.UnitAccessMode(unitType)
 
