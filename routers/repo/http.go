@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+    "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +34,35 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
+
+func getFrame(skipFrames int) runtime.Frame {
+    // We need the frame at index skipFrames+2, since we never want runtime.Callers and getFrame
+    targetFrameIndex := skipFrames + 2
+
+    // Set size to targetFrameIndex+2 to ensure we have room for one more caller than we need
+    programCounters := make([]uintptr, targetFrameIndex+2)
+    n := runtime.Callers(0, programCounters)
+
+    frame := runtime.Frame{Function: "unknown"}
+    if n > 0 {
+        frames := runtime.CallersFrames(programCounters[:n])
+        for more, frameIndex := true, 0; more && frameIndex <= targetFrameIndex; frameIndex++ {
+            var frameCandidate runtime.Frame
+            frameCandidate, more = frames.Next()
+            if frameIndex == targetFrameIndex {
+                frame = frameCandidate
+            }
+        }
+    }
+
+    return frame
+}
+
+// myCaller returns the caller of the function that called it :)
+func myCaller() string {
+        // Skip GetCallerFunctionName and the function to get the caller of
+        return getFrame(2).Function
+}
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
@@ -244,7 +274,7 @@ func HTTP(ctx *context.Context) {
 		}
 
 		if repoExist {
-            log.Trace("routers/repo/http.go: HTTP: 1")
+            log.Trace("routers/repo/http.go: HTTP: 1 (caller: %s)", myCaller())
 			perm, err := models.GetUserRepoPermission(repo, authUser)
 			if err != nil {
                 log.Trace("routers/repo/http.go: HTTP: 2a")
@@ -254,15 +284,20 @@ func HTTP(ctx *context.Context) {
             log.Trace("routers/repo/http.go: HTTP: 2b")
 
 			if !perm.CanAccess(accessMode, unitType) {
+                log.Trace("routers/repo/http.go: HTTP: 2b1")
 				ctx.HandleText(http.StatusForbidden, "User permission denied")
 				return
 			}
+            log.Trace("routers/repo/http.go: HTTP: 2b2")
 
 			if !isPull && repo.IsMirror {
+                log.Trace("routers/repo/http.go: HTTP: 2b2a")
 				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
 				return
 			}
+            log.Trace("routers/repo/http.go: HTTP: 2b2b")
 		}
+        log.Trace("routers/repo/http.go: HTTP: 3")
 
 		environ = []string{
 			models.EnvRepoUsername + "=" + username,
@@ -271,51 +306,72 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.EnvIsDeployKey + "=false",
 		}
+        log.Trace("routers/repo/http.go: HTTP: 4")
 
 		if !authUser.KeepEmailPrivate {
+            log.Trace("routers/repo/http.go: HTTP: 4a")
 			environ = append(environ, models.EnvPusherEmail+"="+authUser.Email)
 		}
 
 		if isWiki {
+            log.Trace("routers/repo/http.go: HTTP: 5a")
 			environ = append(environ, models.EnvRepoIsWiki+"=true")
 		} else {
+            log.Trace("routers/repo/http.go: HTTP: 5b")
 			environ = append(environ, models.EnvRepoIsWiki+"=false")
 		}
 	}
 
+    log.Trace("routers/repo/http.go: HTTP: 6")
+
 	if !repoExist {
 		if !receivePack {
+            log.Trace("routers/repo/http.go: HTTP: 7a")
 			ctx.HandleText(http.StatusNotFound, "Repository not found")
 			return
 		}
 
+        log.Trace("routers/repo/http.go: HTTP: 7b")
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
+            log.Trace("routers/repo/http.go: HTTP: 8a")
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
 		}
+        log.Trace("routers/repo/http.go: HTTP: 8b")
 		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
+            log.Trace("routers/repo/http.go: HTTP: 9a")
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
 			return
 		}
+        log.Trace("routers/repo/http.go: HTTP: 9b")
 
 		// Return dummy payload if GET receive-pack
 		if ctx.Req.Method == http.MethodGet {
+            log.Trace("routers/repo/http.go: HTTP: 10a")
 			dummyInfoRefs(ctx)
 			return
 		}
+        log.Trace("routers/repo/http.go: HTTP: 10b")
 
 		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
 		if err != nil {
+            log.Trace("routers/repo/http.go: HTTP: 11a")
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
 			return
 		}
+        log.Trace("routers/repo/http.go: HTTP: 11b")
 	}
+
+    log.Trace("routers/repo/http.go: HTTP: 12")
 
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
+        log.Trace("routers/repo/http.go: HTTP: 12a")
 		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+            log.Trace("routers/repo/http.go: HTTP: 12b")
 			if models.IsErrUnitTypeNotExist(err) {
+                log.Trace("routers/repo/http.go: HTTP: 12c")
 				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
 				return
 			}
@@ -323,9 +379,12 @@ func HTTP(ctx *context.Context) {
 			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
 			return
 		}
+        log.Trace("routers/repo/http.go: HTTP: 12d")
 	}
+    log.Trace("routers/repo/http.go: HTTP: 13")
 
 	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
+    log.Trace("routers/repo/http.go: HTTP: 14")
 
 	w := ctx.Resp
 	r := ctx.Req.Request
@@ -336,46 +395,63 @@ func HTTP(ctx *context.Context) {
 	}
 
 	for _, route := range routes {
+        log.Trace("routers/repo/http.go: HTTP: 15 route=%v 1", route)
 		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
+            log.Trace("routers/repo/http.go: HTTP: 15 route=%v 2", route)
 			if setting.Repository.DisableHTTPGit {
+                log.Trace("routers/repo/http.go: HTTP: 15 route=%v 3", route)
 				w.WriteHeader(http.StatusForbidden)
+                log.Trace("routers/repo/http.go: HTTP: 15 route=%v 4", route)
 				_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
-				if err != nil {
+                log.Trace("routers/repo/http.go: HTTP: 15 route=%v 5", route)
+				if err != nil {                
 					log.Error(err.Error())
 				}
 				return
 			}
+            log.Trace("routers/repo/http.go: HTTP: 15 route=%v 6", route)
 			if route.method != r.Method {
+                log.Trace("routers/repo/http.go: HTTP: 15 route=%v 7", route)
 				if r.Proto == "HTTP/1.1" {
+                    log.Trace("routers/repo/http.go: HTTP: 15 route=%v 8", route)
 					w.WriteHeader(http.StatusMethodNotAllowed)
+                    log.Trace("routers/repo/http.go: HTTP: 15 route=%v 9", route)
 					_, err := w.Write([]byte("Method Not Allowed"))
+                    log.Trace("routers/repo/http.go: HTTP: 15 route=%v 10", route)
 					if err != nil {
 						log.Error(err.Error())
 					}
 				} else {
+                    log.Trace("routers/repo/http.go: HTTP: 15 route=%v 11", route)
 					w.WriteHeader(http.StatusBadRequest)
+                    log.Trace("routers/repo/http.go: HTTP: 15 route=%v 12", route)
 					_, err := w.Write([]byte("Bad Request"))
 					if err != nil {
 						log.Error(err.Error())
 					}
 				}
+                log.Trace("routers/repo/http.go: HTTP: 15 route=%v 13", route)
 				return
 			}
+            log.Trace("routers/repo/http.go: HTTP: 15 route=%v 14", route)
 
 			file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
 			dir, err := getGitRepoPath(m[1])
+            log.Trace("routers/repo/http.go: HTTP: 15 route=%v 15", route)
 			if err != nil {
 				log.Error(err.Error())
 				ctx.NotFound("Smart Git HTTP", err)
 				return
 			}
+            log.Trace("routers/repo/http.go: HTTP: 15 route=%v 16", route)
 
 			route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
+            log.Trace("routers/repo/http.go: HTTP: 15 route=%v 17", route)
 			return
 		}
 	}
-
+    log.Trace("routers/repo/http.go: HTTP: 16")
 	ctx.NotFound("Smart Git HTTP", nil)
 }
 
