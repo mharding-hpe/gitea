@@ -643,7 +643,7 @@ func serviceRPC(h serviceHandler, service string) {
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
     log.Trace("routers/repo/http.go: serviceRPC: 11")
     
-	ctx, cancel := gocontext.WithTimeout(git.DefaultContext, 10*time.Second)
+	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
     log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
 	var stderr bytes.Buffer
@@ -668,15 +668,9 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v", cmd, pid)
 
 	if err := cmd.Run(); err != nil {
-        if ctx.Err() == gocontext.DeadlineExceeded {
-            log.Trace("routers/repo/http.go: serviceRPC: command timed out 1")
-        }
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
-	} else if ctx.Err() == gocontext.DeadlineExceeded {
-        log.Error("routers/repo/http.go: serviceRPC: command timed out 2")
-        return
-    }
+	}
     log.Trace("routers/repo/http.go: serviceRPC: 21")
 }
 
