@@ -394,8 +394,9 @@ func HTTP(ctx *context.Context) {
 		Env:         environ,
 	}
 
-	for _, route := range routes {
+	for routeNumber, route := range routes {
         log.Trace("routers/repo/http.go: HTTP: 15 route=%v 1", route)
+        log.Trace("routers/repo/http.go: HTTP: 15 route=%v routeNumber=%d method=%s", route, routeNumber, route.method)
 		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
             log.Trace("routers/repo/http.go: HTTP: 15 route=%v 2", route)
@@ -601,55 +602,76 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 }
 
 func serviceRPC(h serviceHandler, service string) {
+    log.Trace("routers/repo/http.go: serviceRPC: 1")
 	defer func() {
 		if err := h.r.Body.Close(); err != nil {
 			log.Error("serviceRPC: Close: %v", err)
 		}
-
+        log.Trace("routers/repo/http.go: serviceRPC: EXIT")
 	}()
 
 	if !hasAccess(service, h, true) {
+        log.Trace("routers/repo/http.go: serviceRPC: 2")
 		h.w.WriteHeader(http.StatusUnauthorized)
+        log.Trace("routers/repo/http.go: serviceRPC: 3")
 		return
 	}
 
+    log.Trace("routers/repo/http.go: serviceRPC: 4")
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
+    log.Trace("routers/repo/http.go: serviceRPC: 5")
 
 	var err error
 	var reqBody = h.r.Body
 
 	// Handle GZIP.
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
+        log.Trace("routers/repo/http.go: serviceRPC: 6")
 		reqBody, err = gzip.NewReader(reqBody)
-		if err != nil {
+        log.Trace("routers/repo/http.go: serviceRPC: 7")
+		if err != nil {            
 			log.Error("Fail to create gzip reader: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
+            log.Trace("routers/repo/http.go: serviceRPC: 8")
 			return
 		}
+        log.Trace("routers/repo/http.go: serviceRPC: 9")
 	}
+    log.Trace("routers/repo/http.go: serviceRPC: 10")
 
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
-
+    log.Trace("routers/repo/http.go: serviceRPC: 11")
+    
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
+    log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
+    log.Trace("routers/repo/http.go: serviceRPC: 13")
 	cmd.Dir = h.dir
 	if service == "receive-pack" {
+        log.Trace("routers/repo/http.go: serviceRPC: 14")
 		cmd.Env = append(os.Environ(), h.environ...)
 	}
+    log.Trace("routers/repo/http.go: serviceRPC: 15")
 	cmd.Stdout = h.w
+    log.Trace("routers/repo/http.go: serviceRPC: 16")
 	cmd.Stdin = reqBody
+    log.Trace("routers/repo/http.go: serviceRPC: 17")
 	cmd.Stderr = &stderr
+    log.Trace("routers/repo/http.go: serviceRPC: 18")
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
+    log.Trace("routers/repo/http.go: serviceRPC: 19")
 	defer process.GetManager().Remove(pid)
+    log.Trace("routers/repo/http.go: serviceRPC: 20")
 
 	if err := cmd.Run(); err != nil {
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
+    log.Trace("routers/repo/http.go: serviceRPC: 21")
 }
 
 func serviceUploadPack(h serviceHandler) {
@@ -657,7 +679,9 @@ func serviceUploadPack(h serviceHandler) {
 }
 
 func serviceReceivePack(h serviceHandler) {
+    log.Trace("routers/repo/http.go: serviceReceivePack: 1")
 	serviceRPC(h, "receive-pack")
+    log.Trace("routers/repo/http.go: serviceReceivePack: 2")
 }
 
 func getServiceType(r *http.Request) string {
