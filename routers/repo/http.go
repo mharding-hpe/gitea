@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+    "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +34,35 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
+
+func getFrame(skipFrames int) runtime.Frame {
+    // We need the frame at index skipFrames+2, since we never want runtime.Callers and getFrame
+    targetFrameIndex := skipFrames + 2
+
+    // Set size to targetFrameIndex+2 to ensure we have room for one more caller than we need
+    programCounters := make([]uintptr, targetFrameIndex+2)
+    n := runtime.Callers(0, programCounters)
+
+    frame := runtime.Frame{Function: "unknown"}
+    if n > 0 {
+        frames := runtime.CallersFrames(programCounters[:n])
+        for more, frameIndex := true, 0; more && frameIndex <= targetFrameIndex; frameIndex++ {
+            var frameCandidate runtime.Frame
+            frameCandidate, more = frames.Next()
+            if frameIndex == targetFrameIndex {
+                frame = frameCandidate
+            }
+        }
+    }
+
+    return frame
+}
+
+// MyCaller returns the caller of the function that called it :)
+func MyCaller() string {
+        // Skip GetCallerFunctionName and the function to get the caller of
+        return getFrame(2).Function
+}
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
@@ -244,7 +274,7 @@ func HTTP(ctx *context.Context) {
 		}
 
 		if repoExist {
-            log.Trace("routers/repo/http.go: HTTP: 1")
+            log.Trace("routers/repo/http.go: HTTP: 1 (caller: %s)", MyCaller())
 			perm, err := models.GetUserRepoPermission(repo, authUser)
 			if err != nil {
                 log.Trace("routers/repo/http.go: HTTP: 2a")
