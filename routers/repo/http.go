@@ -647,7 +647,7 @@ func serviceRPC(h serviceHandler, service string) {
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
     log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
-	var stdout, stderr bytes.Buffer
+	var stdin, stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
     log.Trace("routers/repo/http.go: serviceRPC: 13")
 	cmd.Dir = h.dir
@@ -665,6 +665,10 @@ func serviceRPC(h serviceHandler, service string) {
     } else {
         log.Trace("routers/repo/http.go: serviceRPC: 16b: len(reqBody) = " + strconv.FormatInt(nRead, 10))
         cmd.Stdin = buf
+    }
+    _, ee := io.Copy(&stdin, reqBody)
+    if ee != nil {
+        log.Trace("routers/repo/http.go: serviceRPC: 16.5: Error copying reqbody: %v", ee)
     }
     cmd.Stdout = &stdout
 	//cmd.Stdin = reqBody
@@ -729,7 +733,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", stdinfile, e)
     } else {
         defer f.Close()
-        _, e = f.Write(reqBody)
+        _, e = f.Write(stdin.Bytes())
         if e != nil {
             log.Trace("Error writing to %s: %v", stdinfile, e)
         } else {
