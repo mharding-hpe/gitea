@@ -666,14 +666,14 @@ func serviceRPC(h serviceHandler, service string) {
 	defer process.GetManager().Remove(pid)
     log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v", cmd, pid)
 
-	err := cmd.Run()
+	err = cmd.Run()
     stdoutString := "stdout: " + stdout.String()
     stderrString := "stderr: " + stderr.String()
     fmt.Printf(stdoutString + "\n")
     fmt.Printf(stderrString + "\n")
     log.Trace("routers/repo/http.go: serviceRPC: 20.5 " + stdoutString)
     log.Trace("routers/repo/http.go: serviceRPC: 20.5 " + stderrString)
-    fmt.Fprintf(h.w, stdout)
+    h.w.Write(stdout)
     if err != nil {
         //log.Error("Fail to serve RPC(%s): %v", service, err)
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
