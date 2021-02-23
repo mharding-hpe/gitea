@@ -659,20 +659,63 @@ func serviceRPC(h serviceHandler, service string) {
     cmd.Stdout = &stdout
 	cmd.Stdin = reqBody    
 	cmd.Stderr = &stderr
-    log.Trace("routers/repo/http.go: serviceRPC: 18")
+    log.Trace("routers/repo/http.go: serviceRPC: 17 len(reqBody) = %d", len(reqBody))
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
     log.Trace("routers/repo/http.go: serviceRPC: 19")
 	defer process.GetManager().Remove(pid)
-    log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v", cmd, pid)
-
+    outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
+    log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v outfile=%s", cmd, pid, outfile)
 	err = cmd.Run()
-    stdoutString := "stdout: " + stdout.String()
-    stderrString := "stderr: " + stderr.String()
-    fmt.Printf(stdoutString + "\n")
-    fmt.Printf(stderrString + "\n")
-    log.Trace("routers/repo/http.go: serviceRPC: 20.5 " + stdoutString)
-    log.Trace("routers/repo/http.go: serviceRPC: 20.5 " + stderrString)
+    
+    f, e := os.Create(outfile)
+    if e != nil {
+        log.Trace("Error opening %s: %v", outfile, e)
+    } else {
+        defer f.Close()
+        _, e = f.WriteString("cmd=%v\n", cmd)
+        if e != nil {
+            log.Trace("Error writing to %s: %v", outfile, e)
+        } else {
+            if err != nil {
+                _, e = f.WriteString("err=%v\n", err)
+                if e != nil {
+                    log.Trace("Error writing 2nd line to %s: %v", outfile, e)
+                } else {
+                    f.Sync()
+                }
+            } else {
+                f.Sync()
+            }
+        }
+    }
+    stdoutfile := outfile + ".stdout"
+    f, e = os.Create(stdoutfile)
+    if e != nil {
+        log.Trace("Error opening %s: %v", stdoutfile, e)
+    } else {
+        defer f.Close()
+        _, e = f.Write(stdout.Bytes())
+        if e != nil {
+            log.Trace("Error writing to %s: %v", stdoutfile, e)
+        } else {
+            f.Sync()
+        }
+    }
+    stderrfile := outfile + ".stderr"
+    f, e = os.Create(stderrfile)
+    if e != nil {
+        log.Trace("Error opening %s: %v", stderrfile, e)
+    } else {
+        defer f.Close()
+        _, e = f.Write(stderr.Bytes())
+        if e != nil {
+            log.Trace("Error writing to %s: %v", stderrfile, e)
+        } else {
+            f.Sync()
+        }
+    }
+    log.Trace("routers/repo/http.go: serviceRPC: 20.5 len(stdout) = %d len(stderr) = %d", len(stdout), len(stderr))
     h.w.Write(stdout.Bytes())
     if err != nil {
         //log.Error("Fail to serve RPC(%s): %v", service, err)
