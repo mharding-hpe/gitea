@@ -663,7 +663,7 @@ func serviceRPC(h serviceHandler, service string) {
         cmd.Stdin = reqBody
     } else {
         log.Trace("len(reqBody) = " + strconv.FormatInt(nRead, 10))
-        cmd.Stdin = &buf
+        cmd.Stdin = buf
     }
     cmd.Stdout = &stdout
 	//cmd.Stdin = reqBody    
