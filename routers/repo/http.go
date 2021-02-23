@@ -10,6 +10,7 @@ import (
 	"compress/gzip"
 	gocontext "context"
 	"fmt"
+    "io"
 	"io/ioutil"
 	"net/http"
 	"os"
