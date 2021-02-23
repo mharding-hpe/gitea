@@ -673,7 +673,7 @@ func serviceRPC(h serviceHandler, service string) {
     fmt.Printf(stderrString + "\n")
     log.Trace("routers/repo/http.go: serviceRPC: 20.5 " + stdoutString)
     log.Trace("routers/repo/http.go: serviceRPC: 20.5 " + stderrString)
-    h.w.Write(stdout)
+    h.w.Write(stdout.Bytes())
     if err != nil {
         //log.Error("Fail to serve RPC(%s): %v", service, err)
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
