@@ -659,7 +659,7 @@ func serviceRPC(h serviceHandler, service string) {
     cmd.Stdout = &stdout
 	cmd.Stdin = reqBody    
 	cmd.Stderr = &stderr
-    log.Trace("routers/repo/http.go: serviceRPC: 17 len(reqBody) = %d", len(reqBody))
+    log.Trace("routers/repo/http.go: serviceRPC: 17 len(reqBody) = %d", reqBody.Len())
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
     log.Trace("routers/repo/http.go: serviceRPC: 19")
@@ -673,12 +673,12 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", outfile, e)
     } else {
         defer f.Close()
-        _, e = f.WriteString("cmd=%v\n", cmd)
+        _, e = f.WriteString(fmt.Sprintf("cmd=%v\n", cmd))
         if e != nil {
             log.Trace("Error writing to %s: %v", outfile, e)
         } else {
             if err != nil {
-                _, e = f.WriteString("err=%v\n", err)
+                _, e = f.WriteString(fmt.Sprintf("err=%v\n", err))
                 if e != nil {
                     log.Trace("Error writing 2nd line to %s: %v", outfile, e)
                 } else {
