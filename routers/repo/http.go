@@ -656,9 +656,9 @@ func serviceRPC(h serviceHandler, service string) {
 	}
     log.Trace("routers/repo/http.go: serviceRPC: 15")
 	// cmd.Stdout = h.w
-    cmd.Stdout = *stdout
+    cmd.Stdout = &stdout
 	cmd.Stdin = reqBody    
-	cmd.Stderr = *stderr
+	cmd.Stderr = &stderr
     log.Trace("routers/repo/http.go: serviceRPC: 18")
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
