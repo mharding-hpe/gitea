@@ -667,7 +667,7 @@ func serviceRPC(h serviceHandler, service string) {
         cmd.Stdin = buf
     }
     cmd.Stdout = &stdout
-	//cmd.Stdin = reqBody    
+	//cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
     log.Trace("routers/repo/http.go: serviceRPC: 17")
 
@@ -729,7 +729,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", stdinfile, e)
     } else {
         defer f.Close()
-        _, e = f.Write(buf.Bytes())
+        _, e = f.Write(reqBody.Bytes())
         if e != nil {
             log.Trace("Error writing to %s: %v", stdinfile, e)
         } else {
