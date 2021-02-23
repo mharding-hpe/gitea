@@ -729,7 +729,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", stdinfile, e)
     } else {
         defer f.Close()
-        _, e = f.Write(reqBody.Bytes())
+        _, e = f.Write(reqBody)
         if e != nil {
             log.Trace("Error writing to %s: %v", stdinfile, e)
         } else {
