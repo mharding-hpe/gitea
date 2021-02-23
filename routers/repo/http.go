@@ -646,7 +646,7 @@ func serviceRPC(h serviceHandler, service string) {
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
     log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
-	var stderr bytes.Buffer
+	// var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
     log.Trace("routers/repo/http.go: serviceRPC: 13")
 	cmd.Dir = h.dir
@@ -659,7 +659,7 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 16")
 	cmd.Stdin = reqBody
     log.Trace("routers/repo/http.go: serviceRPC: 17")
-	cmd.Stderr = &stderr
+	cmd.Stderr = os.Stdout
     log.Trace("routers/repo/http.go: serviceRPC: 18")
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
@@ -668,7 +668,8 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v", cmd, pid)
 
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
+        log.Error("Fail to serve RPC(%s): %v", service, err)
+		//log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
     log.Trace("routers/repo/http.go: serviceRPC: 21")
