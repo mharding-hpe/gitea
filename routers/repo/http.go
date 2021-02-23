@@ -658,12 +658,12 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 15")
 	// cmd.Stdout = h.w
     buf := &bytes.Buffer{}
-    nRead, err := io.Copy(buf, reqBody)
-    if err != nil {
-        log.Trace("Error reading reqBody: %v", err)
+    nRead, nReadErr := io.Copy(buf, reqBody)
+    if nReadErr != nil {
+        log.Trace("routers/repo/http.go: serviceRPC: 16a: Error reading reqBody: %v", nReadErr)
         cmd.Stdin = reqBody
     } else {
-        log.Trace("len(reqBody) = " + strconv.FormatInt(nRead, 10))
+        log.Trace("routers/repo/http.go: serviceRPC: 16b: len(reqBody) = " + strconv.FormatInt(nRead, 10))
         cmd.Stdin = buf
     }
     cmd.Stdout = &stdout
@@ -683,20 +683,18 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", outfile, e)
     } else {
         defer f.Close()
-        _, e = f.WriteString(fmt.Sprintf("cmd=%v\n", cmd))
+        stringToWrite := fmt.Sprintf("cmd=%v\n", cmd)
+        if nReadErr == nil {
+            stringToWrite = stringToWrite + "len(reqBody) = " + strconv.FormatInt(nRead, 10) + "\n"
+        }
+        if err != nil {
+            stringToWrite = stringToWrite + fmt.Sprintf("err=%v\n", err)
+        }
+        _, e = f.WriteString(stringToWrite)
         if e != nil {
             log.Trace("Error writing to %s: %v", outfile, e)
         } else {
-            if err != nil {
-                _, e = f.WriteString(fmt.Sprintf("err=%v\n", err))
-                if e != nil {
-                    log.Trace("Error writing 2nd line to %s: %v", outfile, e)
-                } else {
-                    f.Sync()
-                }
-            } else {
-                f.Sync()
-            }
+            f.Sync()
         }
     }
     stdoutfile := outfile + ".stdout"
@@ -721,6 +719,19 @@ func serviceRPC(h serviceHandler, service string) {
         _, e = f.Write(stderr.Bytes())
         if e != nil {
             log.Trace("Error writing to %s: %v", stderrfile, e)
+        } else {
+            f.Sync()
+        }
+    }
+    stdinfile := outfile + ".stdin"
+    f, e = os.Create(stdinfile)
+    if e != nil {
+        log.Trace("Error opening %s: %v", stdinfile, e)
+    } else {
+        defer f.Close()
+        _, e = f.Write(buf.Bytes())
+        if e != nil {
+            log.Trace("Error writing to %s: %v", stdinfile, e)
         } else {
             f.Sync()
         }
