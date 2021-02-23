@@ -656,10 +656,19 @@ func serviceRPC(h serviceHandler, service string) {
 	}
     log.Trace("routers/repo/http.go: serviceRPC: 15")
 	// cmd.Stdout = h.w
+    buf := &bytes.Buffer{}
+    nRead, err := io.Copy(buf, reqBody)
+    if err != nil {
+        log.Trace("Error reading reqBody: %v", err)
+        cmd.Stdin = reqBody
+    } else {
+        log.Trace("len(reqBody) = " + strconv.FormatInt(nRead, 10))
+        cmd.Stdin = &buf
+    }
     cmd.Stdout = &stdout
-	cmd.Stdin = reqBody    
+	//cmd.Stdin = reqBody    
 	cmd.Stderr = &stderr
-    log.Trace("routers/repo/http.go: serviceRPC: 17 len(reqBody) = %d", reqBody.Len())
+    log.Trace("routers/repo/http.go: serviceRPC: 17")
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
     log.Trace("routers/repo/http.go: serviceRPC: 19")
