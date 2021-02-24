@@ -677,6 +677,18 @@ func serviceRPC(h serviceHandler, service string) {
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
     log.Trace("routers/repo/http.go: serviceRPC: 19")
 	defer process.GetManager().Remove(pid)
+
+    log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
+    b1 := make([]byte, h.r.ContentLength)
+    nReadBody, nReadErr := reqBody.Read(b1)
+    if nReadErr != nil {
+        log.Error("Error reading request body: %s", nReadErr)
+        return
+    }
+    log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", nReadBody)
+    stdin.Write(b1)
+    cmd.Stdin = &stdin
+
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
     stdinfile := outfile + ".stdin"
     f, nReadErr := os.Create(stdinfile)
@@ -685,26 +697,18 @@ func serviceRPC(h serviceHandler, service string) {
         return
     }
     defer f.Close()
-    nRead, nReadErr := f.Write(reqBody)
+    nWriteFile, nReadErr = f.Write(b1)
     if nReadErr != nil {
         log.Error("Error writing to %s: %v", stdinfile, nReadErr)
         return
     }
     f.Sync()
-    log.Trace("Wrote %d bytes to %s", nRead, stdinfile)
+    log.Trace("Wrote %d bytes to %s", nWriteFile, stdinfile)
     f, err = os.Open(stdinfile)
     if err != nil {
         log.Error("Error opening %s: %s", stdinfile, err)
         return
     }
-    b1 := make([]byte, nRead)
-    n1, err := f.Read(b1)
-    if err != nil {
-        log.Error("Error reading from %s: %s", stdinfile, err)
-        return
-    }
-    stdin.Write(b1)
-    cmd.Stdin = &stdin
 
     log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v outfile=%s", cmd, pid, outfile)
 	err = cmd.Run()
