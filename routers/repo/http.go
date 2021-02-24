@@ -685,7 +685,7 @@ func serviceRPC(h serviceHandler, service string) {
         return
     }
     defer f.Close()
-    nRead, nReadErr := f.Write(reqBody.Bytes())
+    nRead, nReadErr := f.Write(reqBody)
     if nReadErr != nil {
         log.Error("Error writing to %s: %v", stdinfile, nReadErr)
         return
