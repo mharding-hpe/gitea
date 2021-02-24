@@ -679,7 +679,12 @@ func serviceRPC(h serviceHandler, service string) {
 
     log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
     b1 := make([]byte, h.r.ContentLength)
-    nReadBody, nReadErr := h.r.GetBody().Read(b1)
+    bodyCopy, err := h.r.GetBody()
+    if err != nil {
+        log.Error("GetBody failed: %v", err)
+        return
+    }
+    nReadBody, nReadErr := bodyCopy.Read(b1)
     if nReadErr != nil {
         log.Error("Error reading request body: %s", nReadErr)
         return
