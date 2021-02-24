@@ -646,7 +646,7 @@ func serviceRPC(h serviceHandler, service string) {
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
     log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
-	var stdin, stdout, stderr bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
     log.Trace("routers/repo/http.go: serviceRPC: 13")
 	cmd.Dir = h.dir
@@ -678,13 +678,14 @@ func serviceRPC(h serviceHandler, service string) {
 	defer process.GetManager().Remove(pid)
 
     log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
-    nReadBody, nReadErr := reqBody.Read(&stdin)
+    b1 := make([]byte, h.r.ContentLength)
+    nReadBody, nReadErr := h.r.GetBody().Read(b1)
     if nReadErr != nil {
         log.Error("Error reading request body: %s", nReadErr)
         return
     }
     log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", nReadBody)
-    cmd.Stdin = &stdin
+    cmd.Stdin = reqBody
 
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
     stdinfile := outfile + ".stdin"
