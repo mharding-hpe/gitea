@@ -697,9 +697,9 @@ func serviceRPC(h serviceHandler, service string) {
         return
     }
     defer f.Close()
-    nWriteFile, nReadErr = f.Write(b1)
-    if nReadErr != nil {
-        log.Error("Error writing to %s: %v", stdinfile, nReadErr)
+    nWriteFile, nWriteErr := f.Write(b1)
+    if nWriteErr != nil {
+        log.Error("Error writing to %s: %v", stdinfile, nWriteErr)
         return
     }
     f.Sync()
@@ -718,7 +718,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", outfile, e)
     } else {
         defer f.Close()
-        stringToWrite := fmt.Sprintf("cmd=%v\nlen(stdin)=%d\n", cmd, nRead)
+        stringToWrite := fmt.Sprintf("cmd=%v\nlen(stdin) nReadBody=%d\nnWriteFile=%d\n", cmd, nReadBody, nWriteFile)
         stringToWrite = stringToWrite + fmt.Sprintf("method=%s\nurl=%v\n", h.r.Method, h.r.URL)
         stringToWrite = stringToWrite + fmt.Sprintf("proto=%s/%d.%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
         stringToWrite = stringToWrite + fmt.Sprintf("header=$v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
