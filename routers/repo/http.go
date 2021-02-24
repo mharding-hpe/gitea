@@ -614,7 +614,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("routers/repo/http.go: serviceRPC: 2")
 		h.w.WriteHeader(http.StatusUnauthorized)
         log.Trace("routers/repo/http.go: serviceRPC: 3")
-		return777
+		return
 	}
 
     log.Trace("routers/repo/http.go: serviceRPC: 4")
@@ -729,12 +729,12 @@ func serviceRPC(h serviceHandler, service string) {
         stringToWrite = stringToWrite + fmt.Sprintf("Close=%v\n", h.r.Close)
         stringToWrite = stringToWrite + fmt.Sprintf("Form=%v\n", h.r.Form)
         stringToWrite = stringToWrite + fmt.Sprintf("PostForm=%v\n", h.r.PostForm)
-        for i, mf := range h.r.MultipartForm {
-            stringToWrite = stringToWrite + fmt.Sprintf("MultipartForm %d=%v\n", i, mf)
-        }
+        stringToWrite = stringToWrite + fmt.Sprintf("MultipartForm=%v\n", h.r.MultipartForm)
         stringToWrite = stringToWrite + fmt.Sprintf("Trailer=%v\n", h.r.Trailer)
         stringToWrite = stringToWrite + fmt.Sprintf("RemoteAddr=%s\n", h.r.RemoteAddr)
         stringToWrite = stringToWrite + fmt.Sprintf("TLS=%v\n", h.r.TLS)
+        stringToWrite = stringToWrite + fmt.Sprintf("Cancel=%v\n", h.r.Cancel)
+        stringToWrite = stringToWrite + fmt.Sprintf("Remove=%v\n", h.r.Remove)
         _, e = f.WriteString(stringToWrite)
         if e != nil {
             log.Error("Error writing to %s: %v", outfile, e)
