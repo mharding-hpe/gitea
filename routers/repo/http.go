@@ -674,22 +674,19 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 17")
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
-    log.Trace("routers/repo/http.go: serviceRPC: 19")
+    log.Trace("routers/repo/http.go: serviceRPC: 17a")
 	defer process.GetManager().Remove(pid)
 
     log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
-    b1 := make([]byte, h.r.ContentLength)
-    bodyCopy, err := h.r.GetBody()
-    if err != nil {
-        log.Error("GetBody failed: %v", err)
-        return
+    var bodyBytes []byte
+    if reqBody != nil {
+        bodyBytes, _ = ioutil.ReadAll(reqBody)
     }
-    nReadBody, nReadErr := bodyCopy.Read(b1)
-    if nReadErr != nil {
-        log.Error("Error reading request body: %s", nReadErr)
-        return
-    }
-    log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", nReadBody)
+
+    // Restore the io.ReadCloser to its original state
+    reqBody = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+    log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", len(bodyBytes))
     cmd.Stdin = reqBody
 
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
@@ -700,7 +697,7 @@ func serviceRPC(h serviceHandler, service string) {
         return
     }
     defer f.Close()
-    nWriteFile, nWriteErr := f.Write(b1)
+    nWriteFile, nWriteErr := f.Write(bodyBytes)
     if nWriteErr != nil {
         log.Error("Error writing to %s: %v", stdinfile, nWriteErr)
         return
@@ -719,7 +716,7 @@ func serviceRPC(h serviceHandler, service string) {
         return
     } else {
         defer f.Close()
-        stringToWrite := fmt.Sprintf("cmd=%v\nlen(stdin) nReadBody=%d\nnWriteFile=%d\n", cmd, nReadBody, nWriteFile)
+        stringToWrite := fmt.Sprintf("cmd=%v\nlen(bodyBytes)=%d\nnWriteFile=%d\n", cmd, len(bodyBytes), nWriteFile)
         stringToWrite = stringToWrite + fmt.Sprintf("method=%s\nurl=%v\n", h.r.Method, h.r.URL)
         stringToWrite = stringToWrite + fmt.Sprintf("proto=%s major=%d minor=%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
         stringToWrite = stringToWrite + fmt.Sprintf("header=%v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
