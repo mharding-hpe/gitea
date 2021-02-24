@@ -657,19 +657,19 @@ func serviceRPC(h serviceHandler, service string) {
 	}
     log.Trace("routers/repo/http.go: serviceRPC: 15")
 	// cmd.Stdout = h.w
-    buf := &bytes.Buffer{}
-    nRead, nReadErr := io.Copy(buf, reqBody)
-    if nReadErr != nil {
-        log.Trace("routers/repo/http.go: serviceRPC: 16a: Error reading reqBody: %v", nReadErr)
-        cmd.Stdin = reqBody
-    } else {
-        log.Trace("routers/repo/http.go: serviceRPC: 16b: len(reqBody) = " + strconv.FormatInt(nRead, 10))
-        cmd.Stdin = buf
-    }
-    _, ee := io.Copy(&stdin, reqBody)
-    if ee != nil {
-        log.Trace("routers/repo/http.go: serviceRPC: 16.5: Error copying reqbody: %v", ee)
-    }
+    // buf := &bytes.Buffer{}
+    // nRead, nReadErr := io.Copy(buf, reqBody)
+    // if nReadErr != nil {
+        // log.Trace("routers/repo/http.go: serviceRPC: 16a: Error reading reqBody: %v", nReadErr)
+        // cmd.Stdin = reqBody
+    // } else {
+        // log.Trace("routers/repo/http.go: serviceRPC: 16b: len(reqBody) = " + strconv.FormatInt(nRead, 10))
+        // cmd.Stdin = buf
+    // }
+    // _, ee := io.Copy(&stdin, reqBody)
+    // if ee != nil {
+        // log.Trace("routers/repo/http.go: serviceRPC: 16.5: Error copying reqbody: %v", ee)
+    // }
     cmd.Stdout = &stdout
 	//cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
@@ -679,6 +679,34 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 19")
 	defer process.GetManager().Remove(pid)
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
+    stdinfile := outfile + ".stdin"
+    f, nReadErr := os.Create(stdinfile)
+    if nReadErr != nil {
+        log.Error("Error opening %s: %v", stdinfile, nReadErr)
+        return
+    }
+    defer f.Close()
+    nRead, nReadErr = f.Write(reqBody.Bytes())
+    if nReadErr != nil {
+        log.Error("Error writing to %s: %v", stdinfile, nReadErr)
+        return
+    }
+    f.Sync()
+    log.Trace("Wrote %d bytes to %s", nRead, stdinfile)
+    f, err = os.Open(stdinfile)
+    if err != nil {
+        log.Error("Error opening %s: %s", stdinfile, err)
+        return
+    }
+    b1 := make([]byte, nRead)
+    n1, err := f.Read(b1)
+    if err != nil {
+        log.Error("Error reading from %s: %s", stdinfile, err)
+        return
+    }
+    stdin.Write(b1)
+    cmd.Stdin = &stdin
+
     log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v outfile=%s", cmd, pid, outfile)
 	err = cmd.Run()
     
@@ -687,10 +715,11 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("Error opening %s: %v", outfile, e)
     } else {
         defer f.Close()
-        stringToWrite := fmt.Sprintf("cmd=%v\n", cmd)
-        if nReadErr == nil {
-            stringToWrite = stringToWrite + "len(reqBody) = " + strconv.FormatInt(nRead, 10) + "\n"
-        }
+        stringToWrite := fmt.Sprintf("cmd=%v\nlen(stdin)=%d\n", cmd, nRead)
+        stringToWrite = stringToWrite + fmt.Sprintf("method=%s\nurl=%v\n", h.r.Method, h.r.URL)
+        stringToWrite = stringToWrite + fmt.Sprintf("proto=%s/%d.%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
+        stringToWrite = stringToWrite + fmt.Sprintf("header=$v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
+        stringToWrite = stringToWrite + fmt.Sprintf("request=%v\n", h.r)
         if err != nil {
             stringToWrite = stringToWrite + fmt.Sprintf("err=%v\n", err)
         }
@@ -723,19 +752,6 @@ func serviceRPC(h serviceHandler, service string) {
         _, e = f.Write(stderr.Bytes())
         if e != nil {
             log.Trace("Error writing to %s: %v", stderrfile, e)
-        } else {
-            f.Sync()
-        }
-    }
-    stdinfile := outfile + ".stdin"
-    f, e = os.Create(stdinfile)
-    if e != nil {
-        log.Trace("Error opening %s: %v", stdinfile, e)
-    } else {
-        defer f.Close()
-        _, e = f.Write(stdin.Bytes())
-        if e != nil {
-            log.Trace("Error writing to %s: %v", stdinfile, e)
         } else {
             f.Sync()
         }
