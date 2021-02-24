@@ -646,7 +646,7 @@ func serviceRPC(h serviceHandler, service string) {
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
     log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
-	var stdout, stderr bytes.Buffer
+	var stdin, stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
     log.Trace("routers/repo/http.go: serviceRPC: 13")
 	cmd.Dir = h.dir
@@ -678,14 +678,13 @@ func serviceRPC(h serviceHandler, service string) {
 	defer process.GetManager().Remove(pid)
 
     log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
-    b1 := make([]byte, h.r.ContentLength)
-    nReadBody, nReadErr := reqBody.Read(b1)
+    nReadBody, nReadErr := reqBody.Read(&stdin)
     if nReadErr != nil {
         log.Error("Error reading request body: %s", nReadErr)
         return
     }
     log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", nReadBody)
-    cmd.Stdin = reqBody
+    cmd.Stdin = &stdin
 
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
     stdinfile := outfile + ".stdin"
@@ -708,12 +707,10 @@ func serviceRPC(h serviceHandler, service string) {
         return
     }
 
-    log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v outfile=%s", cmd, pid, outfile)
-	err = cmd.Run()
-    
     f, e := os.Create(outfile)
     if e != nil {
-        log.Trace("Error opening %s: %v", outfile, e)
+        log.Error("Error opening %s: %v", outfile, e)
+        return
     } else {
         defer f.Close()
         stringToWrite := fmt.Sprintf("cmd=%v\nlen(stdin) nReadBody=%d\nnWriteFile=%d\n", cmd, nReadBody, nWriteFile)
@@ -722,16 +719,24 @@ func serviceRPC(h serviceHandler, service string) {
         stringToWrite = stringToWrite + fmt.Sprintf("header=%v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
         stringToWrite = stringToWrite + fmt.Sprintf("host=%s\n", h.r.Host)
         stringToWrite = stringToWrite + fmt.Sprintf("RequestURI=%s\n", h.r.RequestURI)
-        if err != nil {
-            stringToWrite = stringToWrite + fmt.Sprintf("err=%v\n", err)
-        }
         _, e = f.WriteString(stringToWrite)
         if e != nil {
-            log.Trace("Error writing to %s: %v", outfile, e)
+            log.Error("Error writing to %s: %v", outfile, e)
         } else {
             f.Sync()
         }
     }
+    log.Trace("routers/repo/http.go: serviceRPC: 20 cmd=%v pid=%v outfile=%s", cmd, pid, outfile)
+	err = cmd.Run()
+    if err != nil {
+        _, e = f.WriteString(fmt.Sprintf("err=%v\n", err))
+        if e != nil {
+            log.Error("Error writing to %s: %v", outfile, e)
+        } else {
+            f.Sync()
+        }
+    }
+
     stdoutfile := outfile + ".stdout"
     f, e = os.Create(stdoutfile)
     if e != nil {
