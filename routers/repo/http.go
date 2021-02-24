@@ -646,7 +646,7 @@ func serviceRPC(h serviceHandler, service string) {
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
     log.Trace("routers/repo/http.go: serviceRPC: 12")
 	defer cancel()
-	var stdin, stdout, stderr bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
     log.Trace("routers/repo/http.go: serviceRPC: 13")
 	cmd.Dir = h.dir
@@ -669,8 +669,7 @@ func serviceRPC(h serviceHandler, service string) {
     // if ee != nil {
         // log.Trace("routers/repo/http.go: serviceRPC: 16.5: Error copying reqbody: %v", ee)
     // }
-    cmd.Stdout = &stdout
-	//cmd.Stdin = reqBody
+    cmd.Stdout = &stdout	
 	cmd.Stderr = &stderr
     log.Trace("routers/repo/http.go: serviceRPC: 17")
 
@@ -686,8 +685,7 @@ func serviceRPC(h serviceHandler, service string) {
         return
     }
     log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", nReadBody)
-    stdin.Write(b1)
-    cmd.Stdin = &stdin
+    cmd.Stdin = reqBody
 
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
     stdinfile := outfile + ".stdin"
@@ -720,9 +718,10 @@ func serviceRPC(h serviceHandler, service string) {
         defer f.Close()
         stringToWrite := fmt.Sprintf("cmd=%v\nlen(stdin) nReadBody=%d\nnWriteFile=%d\n", cmd, nReadBody, nWriteFile)
         stringToWrite = stringToWrite + fmt.Sprintf("method=%s\nurl=%v\n", h.r.Method, h.r.URL)
-        stringToWrite = stringToWrite + fmt.Sprintf("proto=%s/%d.%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
-        stringToWrite = stringToWrite + fmt.Sprintf("header=$v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
-        stringToWrite = stringToWrite + fmt.Sprintf("request=%v\n", h.r)
+        stringToWrite = stringToWrite + fmt.Sprintf("proto=%s major=%d minor=%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
+        stringToWrite = stringToWrite + fmt.Sprintf("header=%v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
+        stringToWrite = stringToWrite + fmt.Sprintf("host=%s\n", h.r.Host)
+        stringToWrite = stringToWrite + fmt.Sprintf("RequestURI=%s\n", h.r.RequestURI)
         if err != nil {
             stringToWrite = stringToWrite + fmt.Sprintf("err=%v\n", err)
         }
