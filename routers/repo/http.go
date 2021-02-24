@@ -66,7 +66,9 @@ func MyCaller() string {
 
 // HTTP implmentation git smart HTTP protocol
 func HTTP(ctx *context.Context) {
+    log.Trace("routers/repo/http.go: HTTP: 0")
 	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
+        log.Trace("routers/repo/http.go: HTTP: 0a")
 		allowedOrigin := setting.Repository.AccessControlAllowOrigin
 		// Set CORS headers for browser-based git clients
 		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
@@ -74,6 +76,7 @@ func HTTP(ctx *context.Context) {
 
 		// Handle preflight OPTIONS request
 		if ctx.Req.Method == "OPTIONS" {
+            log.Trace("routers/repo/http.go: HTTP: 0b")
 			if allowedOrigin == "*" {
 				ctx.Status(http.StatusOK)
 			} else if allowedOrigin == "null" {
@@ -89,17 +92,20 @@ func HTTP(ctx *context.Context) {
 			return
 		}
 	}
-
+    log.Trace("routers/repo/http.go: HTTP: 0c")
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
-
+    log.Trace("routers/repo/http.go: HTTP: 0d username = %s reponame = %s", username, reponame)
 	if ctx.Query("go-get") == "1" {
+        log.Trace("routers/repo/http.go: HTTP: 0e")
 		context.EarlyResponseForGoGetMeta(ctx)
+        log.Trace("routers/repo/http.go: HTTP: 0f")
 		return
 	}
 
 	var isPull, receivePack bool
 	service := ctx.Query("service")
+    log.Trace("routers/repo/http.go: HTTP: 0g service = %s", service)
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
@@ -480,10 +486,13 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
+        log.Trace("routers/repo/http.go: dummyInfoRefs: 1")
 		refs, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
-		if err != nil {
+        log.Trace("routers/repo/http.go: dummyInfoRefs: 2")
+		if err != nil {        
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
+        log.Trace("routers/repo/http.go: dummyInfoRefs: 3")
 
 		log.Debug("populating infoRefsCache: \n%s", string(refs))
 		infoRefsCache = refs
@@ -827,19 +836,29 @@ func getInfoRefs(h serviceHandler) {
 	h.setHeaderNoCache()
 	if hasAccess(getServiceType(h.r), h, false) {
 		service := getServiceType(h.r)
+        log.Trace("routers/repo/http.go: getInfoRefs: 1")
 		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(h.dir)
+        log.Trace("routers/repo/http.go: getInfoRefs: 2")
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
-
+        log.Trace("routers/repo/http.go: getInfoRefs: 3")
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
+        log.Trace("routers/repo/http.go: getInfoRefs: 4")
 		h.w.WriteHeader(http.StatusOK)
+        log.Trace("routers/repo/http.go: getInfoRefs: 5")
 		_, _ = h.w.Write(packetWrite("# service=git-" + service + "\n"))
+        log.Trace("routers/repo/http.go: getInfoRefs: 6")
 		_, _ = h.w.Write([]byte("0000"))
+        log.Trace("routers/repo/http.go: getInfoRefs: 7")
 		_, _ = h.w.Write(refs)
+        log.Trace("routers/repo/http.go: getInfoRefs: 8")
 	} else {
+        log.Trace("routers/repo/http.go: getInfoRefs: a1")
 		updateServerInfo(h.dir)
+        log.Trace("routers/repo/http.go: getInfoRefs: a2")
 		h.sendFile("text/plain; charset=utf-8")
+        log.Trace("routers/repo/http.go: getInfoRefs: a3")
 	}
 }
 
