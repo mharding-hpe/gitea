@@ -614,7 +614,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Trace("routers/repo/http.go: serviceRPC: 2")
 		h.w.WriteHeader(http.StatusUnauthorized)
         log.Trace("routers/repo/http.go: serviceRPC: 3")
-		return
+		return777
 	}
 
     log.Trace("routers/repo/http.go: serviceRPC: 4")
@@ -680,8 +680,10 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
     var bodyBytes []byte
     if reqBody != nil {
+        log.Trace("routers/repo/http.go: serviceRPC: 17b1")
         bodyBytes, _ = ioutil.ReadAll(reqBody)
     }
+    log.Trace("routers/repo/http.go: serviceRPC: 17b2")
 
     // Restore the io.ReadCloser to its original state
     reqBody = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
@@ -719,9 +721,20 @@ func serviceRPC(h serviceHandler, service string) {
         stringToWrite := fmt.Sprintf("cmd=%v\nlen(bodyBytes)=%d\nnWriteFile=%d\n", cmd, len(bodyBytes), nWriteFile)
         stringToWrite = stringToWrite + fmt.Sprintf("method=%s\nurl=%v\n", h.r.Method, h.r.URL)
         stringToWrite = stringToWrite + fmt.Sprintf("proto=%s major=%d minor=%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
-        stringToWrite = stringToWrite + fmt.Sprintf("header=%v\nContentLength=%d\n", h.r.Header, h.r.ContentLength)
+        stringToWrite = stringToWrite + fmt.Sprintf("header=%v\n", h.r.Header)
+        stringToWrite = stringToWrite + fmt.Sprintf("ContentLength=%d\n", h.r.ContentLength)
         stringToWrite = stringToWrite + fmt.Sprintf("host=%s\n", h.r.Host)
         stringToWrite = stringToWrite + fmt.Sprintf("RequestURI=%s\n", h.r.RequestURI)
+        stringToWrite = stringToWrite + fmt.Sprintf("TransferEncoding=%v\n", h.r.TransferEncoding)
+        stringToWrite = stringToWrite + fmt.Sprintf("Close=%v\n", h.r.Close)
+        stringToWrite = stringToWrite + fmt.Sprintf("Form=%v\n", h.r.Form)
+        stringToWrite = stringToWrite + fmt.Sprintf("PostForm=%v\n", h.r.PostForm)
+        for i, mf := range h.r.MultipartForm {
+            stringToWrite = stringToWrite + fmt.Sprintf("MultipartForm %d=%v\n", i, mf)
+        }
+        stringToWrite = stringToWrite + fmt.Sprintf("Trailer=%v\n", h.r.Trailer)
+        stringToWrite = stringToWrite + fmt.Sprintf("RemoteAddr=%s\n", h.r.RemoteAddr)
+        stringToWrite = stringToWrite + fmt.Sprintf("TLS=%v\n", h.r.TLS)
         _, e = f.WriteString(stringToWrite)
         if e != nil {
             log.Error("Error writing to %s: %v", outfile, e)
