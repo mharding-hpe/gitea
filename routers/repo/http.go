@@ -734,7 +734,7 @@ func serviceRPC(h serviceHandler, service string) {
         stringToWrite = stringToWrite + fmt.Sprintf("RemoteAddr=%s\n", h.r.RemoteAddr)
         stringToWrite = stringToWrite + fmt.Sprintf("TLS=%v\n", h.r.TLS)
         stringToWrite = stringToWrite + fmt.Sprintf("Cancel=%v\n", h.r.Cancel)
-        stringToWrite = stringToWrite + fmt.Sprintf("Remove=%v\n", h.r.Remove)
+        stringToWrite = stringToWrite + fmt.Sprintf("Response=%v\n", h.r.Response)
         _, e = f.WriteString(stringToWrite)
         if e != nil {
             log.Error("Error writing to %s: %v", outfile, e)
