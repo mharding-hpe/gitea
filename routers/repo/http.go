@@ -611,7 +611,7 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 	return getConfigSetting(service, h.dir)
 }
 
-func createFile(name string) *File {
+func createFile(name string) *os.File {
     log.Trace("routers/repo/http.go: createFile: Creating %s", name)
     f, err := os.Create(name)
     if err != nil {
@@ -739,7 +739,7 @@ func serviceRPC(h serviceHandler, service string) {
         return
     } else {
         defer f.Close()
-        stringToWrite := fmt.Sprintf("cmd=%v\nlen(bodyBytes)=%d\nnWriteFile=%d\n", cmd, len(bodyBytes), nWriteFile)
+        stringToWrite := fmt.Sprintf("cmd=%v\nlen(bodyBytes)=%d\nCopy=%d\n", cmd, len(bodyBytes), nCopy)
         stringToWrite = stringToWrite + fmt.Sprintf("method=%s\nurl=%v\n", h.r.Method, h.r.URL)
         stringToWrite = stringToWrite + fmt.Sprintf("proto=%s major=%d minor=%d\n", h.r.Proto, h.r.ProtoMajor, h.r.ProtoMinor)
         stringToWrite = stringToWrite + fmt.Sprintf("header=%v\n", h.r.Header)
