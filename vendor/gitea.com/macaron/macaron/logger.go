@@ -57,7 +57,7 @@ func Logger() Handler {
             log.Printf("%s: trailer[%s] = %v", start.Format(LogTimeFormat), k, v)
         }
         log.Printf("%s: TransferEncoding=%v UserAgent=%s", start.Format(LogTimeFormat), ctx.Req.TransferEncoding, ctx.Req.UserAgent())
-        reqBytes, reqErr := httputil.DumpRequest(&(ctx.Req), true)
+        reqBytes, reqErr := httputil.DumpRequest(&(ctx.Req.Request), true)
         if reqErr != nil {
             log.Printf("%s: ERROR: DumpRequest failed: %v", time.Now().Format(LogTimeFormat), reqErr)
         } else {
