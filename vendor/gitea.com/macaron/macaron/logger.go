@@ -57,15 +57,31 @@ func Logger() Handler {
             log.Printf("%s: trailer[%s] = %v", start.Format(LogTimeFormat), k, v)
         }
         log.Printf("%s: TransferEncoding=%v UserAgent=%s", start.Format(LogTimeFormat), ctx.Req.TransferEncoding, ctx.Req.UserAgent())
+        if ctx.Req.ContentLength > 0 {
+            newcl := ctx.Req.ContentLength + 100
+            log.Printf("%s: Setting ContentLength to %d in header", start.Format(LogTimeFormat), newcl)
+            ctx.Req.Header.Set("Content-Length", fmt.Sprintf("%d", newcl))
+            log.Printf("%s: Setting ContentLength to %d in req", start.Format(LogTimeFormat), newcl)
+            ctx.Req.ContentLength = newcl
+            log.Printf("%s: ContentLength=%d", start.Format(LogTimeFormat), ctx.Req.ContentLength)
+            for k, v := range ctx.Req.Header {
+                if k == "Content-Length" {
+                    log.Printf("%s: Header[ContentLength]=%s", start.Format(LogTimeFormat), v)
+                }
+            }
+        }
+        log.Printf("%s: Dumping request", start.Format(LogTimeFormat))
         reqBytes, reqErr := httputil.DumpRequest(ctx.Req.Request, true)
         if reqErr != nil {
             log.Printf("%s: ERROR: DumpRequest failed: %v", time.Now().Format(LogTimeFormat), reqErr)
         } else {
+            log.Printf("%s: request dumed", time.Now().UnixNano())
             reqfile := fmt.Sprintf("/tmp/reqfile.%d", time.Now().UnixNano())
             f, fe := os.Create(reqfile)
             if fe != nil {
                 log.Printf("%s: ERROR: Cannot open file %s: %v", time.Now().Format(LogTimeFormat), reqfile, fe)
             } else {
+                log.Printf("%s: %s created", time.Now().UnixNano(), reqfile)
                 defer f.Close()
                 n, ne := f.Write(reqBytes)
                 if ne != nil {
