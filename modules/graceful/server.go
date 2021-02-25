@@ -201,15 +201,17 @@ type wrappedListener struct {
 }
 
 func newWrappedListener(l net.Listener, srv *Server) *wrappedListener {
-	return &wrappedListener{
+	a := wrappedListener{
 		Listener: l,
 		server:   srv,
 	}
+    log.Trace("modules/graceful/server.go: newWrappedListener: network=%s address=%s PID=%d wrappedListener=%v", srv.network, srv.address, syscall.Getpid(), a)
+    return &a
 }
 
 func (wl *wrappedListener) Accept() (net.Conn, error) {
-    log.Trace("modules/graceful/server.go: wrappedListener.Accept: start PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
-    defer log.Trace("modules/graceful/server.go: wrappedListener.Accept: end PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
+    log.Trace("modules/graceful/server.go: wrappedListener.Accept: start PID=%d wrappedListener=%v network=%s address=%s", syscall.Getpid(), *wl, wl.server.network, wl.server.address)
+    defer log.Trace("modules/graceful/server.go: wrappedListener.Accept: end PID=%d wrappedListener=%v network=%s address=%s", syscall.Getpid(), *wl, wl.server.network, wl.server.address)
 	var c net.Conn
 	// Set keepalive on TCPListeners connections.
 	if tcl, ok := wl.Listener.(*net.TCPListener); ok {
@@ -235,14 +237,15 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 		server: wl.server,
 		closed: &closed,
 	}
+    log.Trace("modules/graceful/server.go: wrappedListener.Accept: 1 PID=%d wrappedListener=%v wrappedConn=%v network=%s address=%s", syscall.Getpid(), *wl, c, wl.server.network, wl.server.address)
 
 	wl.server.wg.Add(1)
 	return c, nil
 }
 
 func (wl *wrappedListener) Close() error {
-    log.Trace("modules/graceful/server.go: wrappedListener.Close: start PID=%d wrappedListener=%v", syscall.Getpid(), wl)
-    defer log.Trace("modules/graceful/server.go: wrappedListener.Close: end PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
+    log.Trace("modules/graceful/server.go: wrappedListener.Close: start PID=%d wrappedListener=%v network=%s address=%s", syscall.Getpid(), *wl, wl.server.network, wl.server.address)
+    defer log.Trace("modules/graceful/server.go: wrappedListener.Close: end PID=%d wrappedListener=%v network=%s address=%s", syscall.Getpid(), *wl, wl.server.network, wl.server.address)
 	if wl.stopped {
 		return syscall.EINVAL
 	}
@@ -263,8 +266,8 @@ type wrappedConn struct {
 }
 
 func (w wrappedConn) Close() error {
-    log.Trace("modules/graceful/server.go: wrappedConn.Close: start PID=%d wrappedConn=%v", syscall.Getpid(), w)
-    defer log.Trace("modules/graceful/server.go: wrappedConn.Close: end PID=%d wrappedConn=%v", syscall.Getpid(), w)
+    log.Trace("modules/graceful/server.go: wrappedConn.Close: start PID=%d wrappedConn=%v network=%s address=%s", syscall.Getpid(), w, w.server.network, w.server.address)
+    defer log.Trace("modules/graceful/server.go: wrappedConn.Close: end PID=%d wrappedConn=%v network=%s address=%s", syscall.Getpid(), w, w.server.network, w.server.address)
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
 		defer func() {
 			if err := recover(); err != nil {
