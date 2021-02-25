@@ -241,8 +241,8 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 }
 
 func (wl *wrappedListener) Close() error {
-    log.Trace("modules/graceful/server.go: wrappedListener.Close: start PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
-    defer log.Trace("modules/graceful/server.go: wrappedListener.Close: end PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
+    log.Trace("modules/graceful/server.go: wrappedListener.Close: start PID=%d wrappedListener=%v", syscall.Getpid(), wl*)
+    defer log.Trace("modules/graceful/server.go: wrappedListener.Close: end PID=%d wrappedListener=%v", syscall.Getpid(), *wl*)
 	if wl.stopped {
 		return syscall.EINVAL
 	}
@@ -263,8 +263,8 @@ type wrappedConn struct {
 }
 
 func (w wrappedConn) Close() error {
-    log.Trace("modules/graceful/server.go: wrappedConn.Close: start PID=%d wrappedConn=%v", syscall.Getpid(), *w)
-    defer log.Trace("modules/graceful/server.go: wrappedConn.Close: end PID=%d wrappedConn=%v", syscall.Getpid(), *w)
+    log.Trace("modules/graceful/server.go: wrappedConn.Close: start PID=%d wrappedConn=%v", syscall.Getpid(), w*)
+    defer log.Trace("modules/graceful/server.go: wrappedConn.Close: end PID=%d wrappedConn=%v", syscall.Getpid(), w*)
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
 		defer func() {
 			if err := recover(); err != nil {
