@@ -682,9 +682,9 @@ func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 17")
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
-    log.Trace("routers/repo/http.go: serviceRPC: 17a")
+    log.Trace("routers/repo/http.go: serviceRPC: 17.1")
 	defer process.GetManager().Remove(pid)
-    log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2 contentlength=%d", h.r.ContentLength)
     
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
     stdinfile := outfile + ".stdin"
@@ -694,31 +694,43 @@ func serviceRPC(h serviceHandler, service string) {
     }
     defer stdinf.Close()
 
-    log.Trace("routers/repo/http.go: serviceRPC: 17b0 copying reqbody to %s", stdinfile)
-    nCopy, eCopy := io.copy(stdinf, reqBody)
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.1 copying reqbody to %s", stdinfile)
+    nCopy, eCopy := io.Copy(stdinf, reqBody)
     if eCopy != nil {
         log.Error("Error copying request body to %s", stdinfile)
         return
     }
-    log.Trace("routers/repo/http.go: serviceRPC: 17b0a copied %d bytes from reqbody to %s", nCopy, stdinfile)
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.2 copied %d bytes from reqbody to %s", nCopy, stdinfile)
+    h.r.Body.Close()
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.3 closed request body")
     stdinf.Sync()
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.4")
     f, err := os.Open(stdinfile)
     if err != nil {
         log.Error("Error opening %s: %s", stdinfile, err)
         return
     }
-
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.5")
+    var bodyBytes []byte
+    n1, e1 := f.Read(bodyBytes)
+    if e1 != nil {
+        log.Error("Error reading from %s", stdinfile)
+        return
+    }
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.6")
+    
     //var bodyBytes []byte
     //if reqBody != nil {
         //log.Trace("routers/repo/http.go: serviceRPC: 17b1")
         //bodyBytes, _ = ioutil.ReadAll(reqBody)
     //}
-    log.Trace("routers/repo/http.go: serviceRPC: 17b2")
+    log.Trace("routers/repo/http.go: serviceRPC: 17.3")
 
     // Restore the io.ReadCloser to its original state
-    reqBody = ioutil.NopCloser(bytes.NewBuffer(f.Read()))
+    
+    reqBody = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
-    log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", len(bodyBytes))
+    log.Trace("routers/repo/http.go: serviceRPC: 17.4 read %d bytes from body", len(bodyBytes))
     cmd.Stdin = reqBody
 
     f, e := os.Create(outfile)
