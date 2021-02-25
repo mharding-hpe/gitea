@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+    "net/http/httputil"
+    "os"
 	"reflect"
 	"runtime"
 	"time"
@@ -55,6 +57,24 @@ func Logger() Handler {
             log.Printf("%s: trailer[%s] = %v", start.Format(LogTimeFormat), k, v)
         }
         log.Printf("%s: TransferEncoding=%v UserAgent=%s", start.Format(LogTimeFormat), ctx.Req.TransferEncoding, ctx.Req.UserAgent())
+        reqBytes, reqErr := httputil.DumpRequest(ctx.Req, true)
+        if reqErr != nil {
+            log.Printf("%s: ERROR: DumpRequest failed: %v", time.Now().Format(LogTimeFormat), reqErr)
+        } else {
+            reqfile := fmt.Sprintf("/tmp/reqfile.%d", time.Now().UnixNano())
+            f, fe := os.Create(reqfile)
+            if fe != nil {
+                log.Printf("%s: ERROR: Cannot open file %s: %v", time.Now().Format(LogTimeFormat), reqfile, fe)
+            } else {
+                defer f.Close()
+                n, ne := f.write(reqBytes)
+                if ne != nil {
+                    log.Printf("%s: ERROR: Error writing to file %s: %v", time.Now().Format(LogTimeFormat), reqfile, ne)
+                } else {
+                    log.Printf("%s: ERROR: Wrote %d bytes to file %s", time.Now().Format(LogTimeFormat), n, reqfile)
+                }
+            }
+        }
 
 		rw := ctx.Resp.(ResponseWriter)
 		ctx.NextLogged(log)
