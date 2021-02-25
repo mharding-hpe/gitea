@@ -20,6 +20,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+    "log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -98,10 +99,22 @@ type Context struct {
 }
 
 func (c *Context) handler() Handler {
-	if c.index < len(c.handlers) {
+	if c.index < len(c.handlers) {        
 		return c.handlers[c.index]
 	}
 	if c.index == len(c.handlers) {
+		return c.action
+	}
+	panic("invalid index for context handler")
+}
+
+func (c *Context) handlerlogged(log *log.Logger) Handler {
+	if c.index < len(c.handlers) {
+        log.Printf("%s: c.index = %v c.handlers[c.index] = %v", time.Now().Format(LogTimeFormat), c.index, c.handlers[c.index])
+		return c.handlers[c.index]
+	}
+	if c.index == len(c.handlers) {
+        log.Printf("%s: c.action = %v", time.Now().Format(LogTimeFormat), c.action)
 		return c.action
 	}
 	panic("invalid index for context handler")
@@ -112,6 +125,11 @@ func (c *Context) Next() {
 	c.run()
 }
 
+func (c *Context) NextLogged(log *log.Logger) {
+	c.index += 1
+	c.runlogged(log)
+}
+
 func (c *Context) Written() bool {
 	return c.Resp.Written()
 }
@@ -119,6 +137,27 @@ func (c *Context) Written() bool {
 func (c *Context) run() {
 	for c.index <= len(c.handlers) {
 		vals, err := c.Invoke(c.handler())
+		if err != nil {
+			panic(err)
+		}
+		c.index += 1
+
+		// if the handler returned something, write it to the http response
+		if len(vals) > 0 {
+			ev := c.GetVal(reflect.TypeOf(ReturnHandler(nil)))
+			handleReturn := ev.Interface().(ReturnHandler)
+			handleReturn(c, vals)
+		}
+
+		if c.Written() {
+			return
+		}
+	}
+}
+
+func (c *Context) runlogged(log *log.Logger) {
+	for c.index <= len(c.handlers) {
+		vals, err := c.Invoke(c.handlerlogged(log))
 		if err != nil {
 			panic(err)
 		}

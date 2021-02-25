@@ -46,10 +46,18 @@ func Logger() Handler {
 	return func(ctx *Context, log *log.Logger) {
 		start := time.Now()
 
-		log.Printf("%s: Started %s %s for %s", time.Now().Format(LogTimeFormat), ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr())
+		log.Printf("%s: Started %s %s for %s", start.Format(LogTimeFormat), ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr())
+        log.Printf("%s: URL=%v Proto=%s pmajor=%d pminor=%d ContentLength=%d Close=%v Host=%s TLS=%v", start.Format(LogTimeFormat), ctx.Req.URL, ctx.Req.Proto, ctx.Req.ProtoMajor, ctx.Req.ProtoMinor, ctx.Req.ContentLength, ctx.Req.Close, ctx.Req.Host, ctx.Req.TLS)
+        for k, v := range ctx.Req.Header {
+            log.Printf("%s: header[%s] = %v", start.Format(LogTimeFormat), k, v)
+        }
+        for k, v := range ctx.Req.Trailer {
+            log.Printf("%s: trailer[%s] = %v", start.Format(LogTimeFormat), k, v)
+        }
+        log.Printf("%s: TransferEncoding=%v UserAgent=%s", start.Format(LogTimeFormat), ctx.Req.TransferEncoding, ctx.Req.UserAgent())
 
 		rw := ctx.Resp.(ResponseWriter)
-		ctx.Next()
+		ctx.NextLogged(log)
 
 		content := fmt.Sprintf("%s: Completed %s %s %v %s in %v", time.Now().Format(LogTimeFormat), ctx.Req.Method, ctx.Req.RequestURI, rw.Status(), http.StatusText(rw.Status()), time.Since(start))
 		if ColorLog {
