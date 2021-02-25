@@ -10,6 +10,7 @@ import (
 	"compress/gzip"
 	gocontext "context"
 	"fmt"
+    "io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -610,6 +611,17 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 	return getConfigSetting(service, h.dir)
 }
 
+func createFile(name string) *File {
+    log.Trace("routers/repo/http.go: createFile: Creating %s", name)
+    f, err := os.Create(name)
+    if err != nil {
+        log.Error("Error opening %s: %v", name, err)
+        return nil
+    }
+    log.Trace("routers/repo/http.go: createFile: Created %s", name)
+    return f
+}
+
 func serviceRPC(h serviceHandler, service string) {
     log.Trace("routers/repo/http.go: serviceRPC: 1")
 	defer func() {
@@ -664,20 +676,7 @@ func serviceRPC(h serviceHandler, service string) {
 		cmd.Env = append(os.Environ(), h.environ...)
 	}
     log.Trace("routers/repo/http.go: serviceRPC: 15")
-	// cmd.Stdout = h.w
-    // buf := &bytes.Buffer{}
-    // nRead, nReadErr := io.Copy(buf, reqBody)
-    // if nReadErr != nil {
-        // log.Trace("routers/repo/http.go: serviceRPC: 16a: Error reading reqBody: %v", nReadErr)
-        // cmd.Stdin = reqBody
-    // } else {
-        // log.Trace("routers/repo/http.go: serviceRPC: 16b: len(reqBody) = " + strconv.FormatInt(nRead, 10))
-        // cmd.Stdin = buf
-    // }
-    // _, ee := io.Copy(&stdin, reqBody)
-    // if ee != nil {
-        // log.Trace("routers/repo/http.go: serviceRPC: 16.5: Error copying reqbody: %v", ee)
-    // }
+
     cmd.Stdout = &stdout	
 	cmd.Stderr = &stderr
     log.Trace("routers/repo/http.go: serviceRPC: 17")
@@ -685,41 +684,42 @@ func serviceRPC(h serviceHandler, service string) {
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
     log.Trace("routers/repo/http.go: serviceRPC: 17a")
 	defer process.GetManager().Remove(pid)
-
     log.Trace("routers/repo/http.go: serviceRPC: 17b contentlength=%d", h.r.ContentLength)
-    var bodyBytes []byte
-    if reqBody != nil {
-        log.Trace("routers/repo/http.go: serviceRPC: 17b1")
-        bodyBytes, _ = ioutil.ReadAll(reqBody)
-    }
-    log.Trace("routers/repo/http.go: serviceRPC: 17b2")
-
-    // Restore the io.ReadCloser to its original state
-    reqBody = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-    log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", len(bodyBytes))
-    cmd.Stdin = reqBody
-
+    
     outfile := fmt.Sprintf("/tmp/cmd.%d", time.Now().UnixNano())
     stdinfile := outfile + ".stdin"
-    f, nReadErr := os.Create(stdinfile)
-    if nReadErr != nil {
-        log.Error("Error opening %s: %v", stdinfile, nReadErr)
+    stdinf := createFile(stdinfile)
+    if stdinf == nil {
         return
     }
-    defer f.Close()
-    nWriteFile, nWriteErr := f.Write(bodyBytes)
-    if nWriteErr != nil {
-        log.Error("Error writing to %s: %v", stdinfile, nWriteErr)
+    defer stdinf.Close()
+
+    log.Trace("routers/repo/http.go: serviceRPC: 17b0 copying reqbody to %s", stdinfile)
+    nCopy, eCopy := io.copy(stdinf, reqBody)
+    if eCopy != nil {
+        log.Error("Error copying request body to %s", stdinfile)
         return
     }
-    f.Sync()
-    log.Trace("Wrote %d bytes to %s", nWriteFile, stdinfile)
-    f, err = os.Open(stdinfile)
+    log.Trace("routers/repo/http.go: serviceRPC: 17b0a copied %d bytes from reqbody to %s", nCopy, stdinfile)
+    stdinf.Sync()
+    f, err := os.Open(stdinfile)
     if err != nil {
         log.Error("Error opening %s: %s", stdinfile, err)
         return
     }
+
+    //var bodyBytes []byte
+    //if reqBody != nil {
+        //log.Trace("routers/repo/http.go: serviceRPC: 17b1")
+        //bodyBytes, _ = ioutil.ReadAll(reqBody)
+    //}
+    log.Trace("routers/repo/http.go: serviceRPC: 17b2")
+
+    // Restore the io.ReadCloser to its original state
+    reqBody = ioutil.NopCloser(bytes.NewBuffer(f.Read()))
+
+    log.Trace("routers/repo/http.go: serviceRPC: 17c read %d bytes from body", len(bodyBytes))
+    cmd.Stdin = reqBody
 
     f, e := os.Create(outfile)
     if e != nil {
