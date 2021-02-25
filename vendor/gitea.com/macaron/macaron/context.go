@@ -110,11 +110,11 @@ func (c *Context) handler() Handler {
 
 func (c *Context) handlerlogged(log *log.Logger) Handler {
 	if c.index < len(c.handlers) {
-        log.Printf("%s: c.index = %v c.handlers[c.index] = %v", time.Now().Format(LogTimeFormat), c.index, c.handlers[c.index])
+        log.Printf("%s: c.index = %v c.handlers[c.index] = %+v", time.Now().Format(LogTimeFormat), c.index, c.handlers[c.index])
 		return c.handlers[c.index]
 	}
 	if c.index == len(c.handlers) {
-        log.Printf("%s: c.action = %v", time.Now().Format(LogTimeFormat), c.action)
+        log.Printf("%s: c.action = %+v", time.Now().Format(LogTimeFormat), c.action)
 		return c.action
 	}
 	panic("invalid index for context handler")
