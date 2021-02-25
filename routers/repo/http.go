@@ -567,10 +567,12 @@ func serviceRPC(h serviceHandler, service string) {
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
 	defer process.GetManager().Remove(pid)
 
+    log.Trace("routers/repo/http.go: serviceRPC: Running command")
 	if err := cmd.Run(); err != nil {
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
+    log.Trace("routers/repo/http.go: serviceRPC: Command done")
 }
 
 func serviceUploadPack(h serviceHandler) {

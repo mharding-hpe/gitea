@@ -48,7 +48,7 @@ type Server struct {
 }
 
 // NewServer creates a server on network at provided address
-func NewServer(network, address string) *Server {
+func NewServer(network, address string) *Server {    
 	if GetManager().IsChild() {
 		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
 	} else {
@@ -72,15 +72,20 @@ func NewServer(network, address string) *Server {
 // ListenAndServe listens on the provided network address and then calls Serve
 // to handle requests on incoming connections.
 func (srv *Server) ListenAndServe(serve ServeFunction) error {
+    log.Trace("modules/graceful/server.go: ListenAndServe: start network=%s address=%s pid=%d", srv.network, srv.address, syscall.Getpid())
+    defer log.Trace("modules/graceful/server.go: ListenAndServe: end network=%s address=%s pid=%d", srv.network, srv.address, syscall.Getpid())
 	go srv.awaitShutdown()
-
+    log.Trace("modules/graceful/server.go: ListenAndServe: 2 network=%s address=%s pid=%d", srv.network, srv.address, syscall.Getpid())
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to GetListener: %v", err)
 		return err
 	}
-
+    log.Trace("modules/graceful/server.go: ListenAndServe: 3 network=%s address=%s pid=%d", srv.network, srv.address, syscall.Getpid())
+    
 	srv.listener = newWrappedListener(l, srv)
+
+    log.Trace("modules/graceful/server.go: ListenAndServe: 4 network=%s address=%s pid=%d", srv.network, srv.address, syscall.Getpid())
 
 	srv.BeforeBegin(srv.network, srv.address)
 
@@ -95,6 +100,8 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 // certFile should be the concatenation of the server's certificate followed by the
 // CA's certificate.
 func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFunction) error {
+    log.Trace("modules/graceful/server.go: ListenAndServeTLS: start network=%s address=%s certFile=%s keyFile=%s pid=%d", srv.network, srv.address, certFile, keyFile, syscall.Getpid())
+    defer log.Trace("modules/graceful/server.go: ListenAndServeTLS: end network=%s address=%s certFile=%s keyFile=%s pid=%d", srv.network, srv.address, certFile, keyFile, syscall.Getpid())
 	config := &tls.Config{}
 	if config.NextProtos == nil {
 		config.NextProtos = []string{"http/1.1"}
@@ -126,6 +133,8 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
+    log.Trace("modules/graceful/server.go: ListenAndServeTLSConfig: start network=%s address=%s tlsConfig=%v pid=%d", srv.network, srv.address, *tlsConfig, syscall.Getpid())
+    defer log.Trace("modules/graceful/server.go: ListenAndServeTLSConfig: end network=%s address=%s tlsConfig=%v pid=%d", srv.network, srv.address, *tlsConfig, syscall.Getpid())
 	go srv.awaitShutdown()
 
 	l, err := GetListener(srv.network, srv.address)
@@ -151,6 +160,7 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 // sync.Waitgroup so that all outstanding connections can be served before shutting
 // down the server.
 func (srv *Server) Serve(serve ServeFunction) error {
+    log.Trace("modules/graceful/server.go: Server.Serve: start network=%s address=%s PID=%d", srv.network, srv.address, syscall.Getpid())
 	defer log.Debug("Serve() returning... (PID: %d)", syscall.Getpid())
 	srv.setState(stateRunning)
 	GetManager().RegisterServer()
@@ -198,6 +208,8 @@ func newWrappedListener(l net.Listener, srv *Server) *wrappedListener {
 }
 
 func (wl *wrappedListener) Accept() (net.Conn, error) {
+    log.Trace("modules/graceful/server.go: wrappedListener.Accept: start PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
+    defer log.Trace("modules/graceful/server.go: wrappedListener.Accept: end PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
 	var c net.Conn
 	// Set keepalive on TCPListeners connections.
 	if tcl, ok := wl.Listener.(*net.TCPListener); ok {
@@ -229,6 +241,8 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 }
 
 func (wl *wrappedListener) Close() error {
+    log.Trace("modules/graceful/server.go: wrappedListener.Close: start PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
+    defer log.Trace("modules/graceful/server.go: wrappedListener.Close: end PID=%d wrappedListener=%v", syscall.Getpid(), *wl)
 	if wl.stopped {
 		return syscall.EINVAL
 	}
@@ -249,6 +263,8 @@ type wrappedConn struct {
 }
 
 func (w wrappedConn) Close() error {
+    log.Trace("modules/graceful/server.go: wrappedConn.Close: start PID=%d wrappedConn=%v", syscall.Getpid(), *w)
+    defer log.Trace("modules/graceful/server.go: wrappedConn.Close: end PID=%d wrappedConn=%v", syscall.Getpid(), *w)
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
 		defer func() {
 			if err := recover(); err != nil {
