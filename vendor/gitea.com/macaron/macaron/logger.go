@@ -57,7 +57,7 @@ func Logger() Handler {
             log.Printf("%s: trailer[%s] = %v", start.Format(LogTimeFormat), k, v)
         }
         log.Printf("%s: TransferEncoding=%v UserAgent=%s", start.Format(LogTimeFormat), ctx.Req.TransferEncoding, ctx.Req.UserAgent())
-        reqBytes, reqErr := httputil.DumpRequest(ctx.Req, true)
+        reqBytes, reqErr := httputil.DumpRequest(&(ctx.Req), true)
         if reqErr != nil {
             log.Printf("%s: ERROR: DumpRequest failed: %v", time.Now().Format(LogTimeFormat), reqErr)
         } else {
@@ -67,11 +67,12 @@ func Logger() Handler {
                 log.Printf("%s: ERROR: Cannot open file %s: %v", time.Now().Format(LogTimeFormat), reqfile, fe)
             } else {
                 defer f.Close()
-                n, ne := f.write(reqBytes)
+                n, ne := f.Write(reqBytes)
                 if ne != nil {
                     log.Printf("%s: ERROR: Error writing to file %s: %v", time.Now().Format(LogTimeFormat), reqfile, ne)
                 } else {
-                    log.Printf("%s: ERROR: Wrote %d bytes to file %s", time.Now().Format(LogTimeFormat), n, reqfile)
+                    log.Printf("%s: Wrote %d bytes to file %s", time.Now().Format(LogTimeFormat), n, reqfile)
+                    f.Sync()
                 }
             }
         }
