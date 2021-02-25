@@ -717,7 +717,7 @@ func serviceRPC(h serviceHandler, service string) {
         log.Error("Error reading from %s", stdinfile)
         return
     }
-    log.Trace("routers/repo/http.go: serviceRPC: 17.2.6")
+    log.Trace("routers/repo/http.go: serviceRPC: 17.2.6 n1=%d",n1)
     
     //var bodyBytes []byte
     //if reqBody != nil {
